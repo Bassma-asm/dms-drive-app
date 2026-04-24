@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>SENTRY-DRIVE | Vigilance routière</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --tesla-red: #E81922;
+      --tesla-blue: #00a8ff;
+      --bg-dark: #0A0B0D;
+      --card-bg: rgba(20, 22, 27, 0.92);
+      --neon-glow: 0 0 8px rgba(0,168,255,0.6);
+    }
+    body {
+      background: var(--bg-dark);
+      color: white;
+      font-family: 'Rajdhani', sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      position: relative;
+    }
+    /* Header style cockpit */
+    header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      padding: 15px 20px;
+      background: linear-gradient(to bottom, #000000cc, transparent);
+      z-index: 1100;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      pointer-events: none;
+    }
+    h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.1rem;
+      letter-spacing: 3px;
+      color: var(--tesla-blue);
+      text-shadow: var(--neon-glow);
+    }
+    .badge {
+      font-size: 0.7rem;
+      color: #aaa;
+      font-weight: 300;
+    }
+    /* Carte */
+    #map {
+      height: 100vh;
+      width: 100vw;
+      z-index: 1;
+    }
+    /* Overlay tableau de bord */
+    .dashboard {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 92%;
+      max-width: 420px;
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      border-radius: 24px;
+      border: 1px solid rgba(0,168,255,0.3);
+      padding: 16px;
+      z-index: 1050;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.6);
+    }
+    .stats-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .stat-card {
+      flex: 1;
+      background: rgba(0,0,0,0.5);
+      border-radius: 20px;
+      padding: 10px;
+      text-align: center;
+      border-bottom: 2px solid var(--tesla-blue);
+    }
+    .stat-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #9aa0b0;
+    }
+    .stat-value {
+      font-family: 'Orbitron', monospace;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: white;
+      line-height: 1;
+      margin-top: 5px;
+    }
+    .unit {
+      font-size: 0.7rem;
+      color: var(--tesla-blue);
+    }
+    .status {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: rgba(0,168,255,0.1);
+      border-radius: 40px;
+      padding: 8px;
+      margin-bottom: 16px;
+      font-weight: bold;
+      font-size: 0.8rem;
+      color: #0af;
+    }
+    .pulse-dot {
+      width: 10px;
+      height: 10px;
+      background: #2ecc71;
+      border-radius: 50%;
+      box-shadow: 0 0 0 0 #2ecc71;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(46,204,113,0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(46,204,113,0); } 100% { transform: scale(0.95); } }
+    .panic-btn {
+      background: var(--tesla-red);
+      border: none;
+      width: 100%;
+      padding: 14px;
+      border-radius: 40px;
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 700;
+      font-size: 1.2rem;
+      color: white;
+      letter-spacing: 3px;
+      box-shadow: 0 0 12px rgba(232,25,34,0.6);
+      transition: 0.1s linear;
+      cursor: pointer;
+    }
+    .panic-btn:active { transform: scale(0.97); background: #b01018; }
+    /* Caméra overlay */
+    .cam-overlay {
+      position: absolute;
+      bottom: 180px;
+      right: 12px;
+      width: 110px;
+      height: 150px;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 2px solid var(--tesla-blue);
+      box-shadow: 0 0 12px rgba(0,168,255,0.5);
+      background: black;
+      z-index: 1200;
+      opacity: 0.9;
+    }
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+    .leaflet-control-attribution { display: none; }
+    .leaflet-container { background: #0b0d10; }
+    .leaflet-tile-pane { filter: brightness(0.6) contrast(1.2); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>SENTRY-DRIVE</h1>
+    <span class="badge">VIGILANCE IA</span>
+  </header>
+  <div id="map"></div>
+  <div class="cam-overlay">
+    <video id="videoCam" autoplay playsinline muted></video>
+  </div>
+  <div class="dashboard">
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-label">VITESSE</div><div class="stat-value"><span id="speedVal">0</span><span class="unit"> km/h</span></div></div>
+      <div class="stat-card"><div class="stat-label">PRÉCISION</div><div class="stat-value"><span id="accVal">0</span><span class="unit"> m</span></div></div>
+      <div class="stat-card"><div class="stat-label">HÔPITAL</div><div class="stat-value"><span id="hospitalDist">-</span><span class="unit"> km</span></div></div>
+    </div>
+    <div class="status"><div class="pulse-dot"></div><span id="statusMsg">GPS ACTIF • VEILLE</span></div>
+    <button class="panic-btn" id="panicBtn">⚠️ ALERTE URGENCE</button>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
+  <script>
+    // -------------------- CONFIG --------------------
+    const N8N_WEBHOOK = "https://skewed-buffoon-jovial.ngrok-free.dev/webhook/somnolence-alerte"; // REMPLACEZ PAR VOTRE URL
+    const DRIVER_ID = "Bassma_Truck_01";
+    let map, marker, circle;
+    let lastSend = 0;
+    let currentCoords = { lat: 32.2927, lng: -9.2345 };
+    let watchId = null;
+    let eyeClosedFrames = 0;
+    const EYE_CLOSE_THRESH = 0.20;
+    const ALERT_FRAMES = 12;
+
+    // -------------------- CARTE --------------------
+    function initMap() {
+      map = L.map('map').setView([currentCoords.lat, currentCoords.lng], 14);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+      }).addTo(map);
+      const icon = L.divIcon({ html: '<div style="background:#00a8ff; width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 0 12px #00a8ff;"></div>', iconSize: [14,14], iconAnchor: [7,7] });
+      marker = L.marker([currentCoords.lat, currentCoords.lng], { icon }).addTo(map);
+      circle = L.circle([currentCoords.lat, currentCoords.lng], { radius: 20, color: '#00a8ff', weight: 1, fillOpacity: 0.1 }).addTo(map);
+    }
+
+    // -------------------- ENVOI VERS N8N --------------------
+    async function sendToN8N(alertType, extra = {}) {
+      const now = Date.now();
+      if (alertType === "GPS_UPDATE" && now - lastSend < 20000) return;
+      lastSend = now;
+      const payload = {
+        alert_type: alertType,
+        driver_id: DRIVER_ID,
+        lat: currentCoords.lat,
+        lon: currentCoords.lng,
+        speed: parseFloat(document.getElementById('speedVal').innerText) || 0,
+        timestamp: new Date().toISOString(),
+        ...extra
+      };
+      try {
+        await fetch(N8N_WEBHOOK, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
+          body: JSON.stringify(payload)
+        });
+        console.log("✅ N8N:", alertType);
+      } catch(e) { console.warn("⚠️ Envoi échoué", e); }
+    }
+
+    // -------------------- GEOLOCALISATION --------------------
+    function startGPS() {
+      if (!navigator.geolocation) return;
+      watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          const { latitude, longitude, speed, accuracy } = pos.coords;
+          currentCoords = { lat: latitude, lng: longitude };
+          document.getElementById('speedVal').innerText = speed ? Math.round(speed * 3.6) : "0";
+          document.getElementById('accVal').innerText = Math.round(accuracy);
+          marker.setLatLng([latitude, longitude]);
+          circle.setLatLng([latitude, longitude]);
+          circle.setRadius(accuracy);
+          map.panTo([latitude, longitude]);
+          sendToN8N("GPS_UPDATE");
+          findNearestHospital(latitude, longitude);
+        },
+        (err) => {
+          document.getElementById('statusMsg').innerText = "⚠️ GPS INACTIF";
+          console.error(err);
+        },
+        { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+      );
+    }
+
+    // -------------------- PROXIMITÉ HÔPITAL / POLICE --------------------
+    async function findNearestHospital(lat, lon) {
+      const overpass = `https://overpass-api.de/api/interpreter?data=[out:json];(node["amenity"="hospital"](around:10000,${lat},${lon});node["amenity"="police"](around:10000,${lat},${lon}););out;`;
+      try {
+        const resp = await fetch(overpass);
+        const data = await resp.json();
+        let minDist = Infinity;
+        let nearestType = "";
+        for (let elem of data.elements) {
+          const d = getDistance(lat, lon, elem.lat, elem.lon);
+          if (d < minDist) {
+            minDist = d;
+            nearestType = elem.tags?.amenity === "hospital" ? "🏥" : "👮";
+          }
+        }
+        if (minDist !== Infinity) {
+          document.getElementById('hospitalDist').innerHTML = (minDist < 1 ? (minDist*1000).toFixed(0)+"m" : minDist.toFixed(1));
+          document.getElementById('statusMsg').innerHTML = `${nearestType} SECOURS à ${minDist < 1 ? (minDist*1000).toFixed(0)+"m" : minDist.toFixed(1)+"km"}`;
+        } else {
+          document.getElementById('hospitalDist').innerHTML = "—";
+        }
+      } catch(e) { console.warn("Overpass erreur"); }
+    }
+    function getDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    // -------------------- DÉTECTION SOMMOLENCE (face-api) --------------------
+    async function initFaceDetection() {
+      const VIDEO = document.getElementById('videoCam');
+      // Chargement des modèles (hébergés dans /models à la racine du serveur)
+      const MODEL_URL = '/models';  // vous devez placer les dossiers tiny_face_detector & face_landmark_68 ici
+      try {
+        await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+        await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+        console.log("✅ Modèles chargés");
+      } catch(e) {
+        document.getElementById('statusMsg').innerHTML = "⚠️ IA caméra non dispo";
+        console.warn("Modèles manquants", e);
+        return;
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+      VIDEO.srcObject = stream;
+      VIDEO.addEventListener('play', () => {
+        setInterval(async () => {
+          const detections = await faceapi.detectSingleFace(VIDEO, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks();
+          if (detections) {
+            const leftEye = detections.landmarks.getLeftEye();
+            const rightEye = detections.landmarks.getRightEye();
+            const ear = (calcEAR(leftEye) + calcEAR(rightEye)) / 2;
+            if (ear < EYE_CLOSE_THRESH) {
+              eyeClosedFrames++;
+              if (eyeClosedFrames >= ALERT_FRAMES) {
+                sendToN8N("DROWSINESS", { ear_value: ear });
+                document.getElementById('statusMsg').innerHTML = "⚠️ SOMMOLENCE DÉTECTÉE !";
+                // Bip sonore
+                new Audio("data:audio/wav;base64,U3RlYWx0aCBzb3VuZA...").play().catch(e=>console.log);
+                eyeClosedFrames = 0;
+              }
+            } else {
+              eyeClosedFrames = Math.max(0, eyeClosedFrames-2);
+              if (eyeClosedFrames < 3) document.getElementById('statusMsg').innerHTML = "👁️ CONDUCTEUR VIGILANT";
+            }
+          }
+        }, 200);
+      });
+    }
+    function calcEAR(eyePts) {
+      const p1 = eyePts[1], p2 = eyePts[5], p3 = eyePts[2], p4 = eyePts[4], p5 = eyePts[0], p6 = eyePts[3];
+      const vert1 = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+      const vert2 = Math.hypot(p3.x - p4.x, p3.y - p4.y);
+      const horiz = Math.hypot(p5.x - p6.x, p5.y - p6.y);
+      return (vert1 + vert2) / (2 * horiz);
+    }
+
+    // -------------------- ALERTE MANUELLE --------------------
+    document.getElementById('panicBtn').onclick = () => {
+      sendToN8N("MANUAL_PANIC", { manual: true });
+      document.getElementById('statusMsg').innerHTML = "🚨 ALERTE ENVOYÉE !";
+      setTimeout(() => document.getElementById('statusMsg').innerHTML = "✅ ALERTE TRANSMISE", 2000);
+    };
+
+    // -------------------- INITIALISATION --------------------
+    window.onload = () => {
+      initMap();
+      startGPS();
+      initFaceDetection().catch(e => console.warn("Caméra refusée ou modèles absents"));
+    };
+  </script>
+</body>
+</html>

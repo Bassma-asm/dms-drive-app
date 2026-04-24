@@ -1,0 +1,21 @@
+{
+  "name": "SENTRY-DRIVE",
+  "short_name": "SENTRY",
+  "description": "Système de surveillance conducteur avec alerte somnolence",
+  "start_url": ".",
+  "display": "fullscreen",
+  "theme_color": "#0A0B0D",
+  "background_color": "#0A0B0D",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
