@@ -3,28 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>BASSMA SENTRY - Driver Monitor</title>
-    <!-- PWA metas -->
-    <link rel="manifest" href="data:application/manifest+json,{
-        \"name\":\"BASSMA SENTRY\",
-        \"short_name\":\"SENTRY\",
-        \"start_url\":\".\",
-        \"display\":\"standalone\",
-        \"theme_color\":\"#0A0B0D\",
-        \"background_color\":\"#0A0B0D\"
-    }">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <!-- Leaflet & fonts -->
+    <title>Driver Monitoring System - Driver Terminal</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
         :root {
             --tesla-red: #E81922;
             --tesla-blue: #3498db;
             --bg-dark: #0A0B0D;
             --card-bg: rgba(30, 31, 34, 0.95);
+            --border-glow: 0 0 8px rgba(52,152,219,0.3);
         }
         body {
             background: var(--bg-dark);
@@ -45,26 +39,39 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            overflow-y: auto;
         }
         .form-card {
             background: var(--card-bg);
             border-radius: 32px;
-            padding: 32px 24px;
-            width: 85%;
-            max-width: 400px;
+            padding: 28px 24px;
+            width: 90%;
+            max-width: 480px;
             border: 1px solid rgba(52,152,219,0.4);
             box-shadow: 0 0 30px rgba(52,152,219,0.2);
+            margin: 20px;
         }
         .form-card h2 {
             font-family: 'Orbitron', sans-serif;
             text-align: center;
-            margin-bottom: 28px;
+            margin-bottom: 24px;
             color: var(--tesla-blue);
+            letter-spacing: 2px;
         }
-        .form-card input {
+        .form-group {
+            margin-bottom: 18px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+            color: #9aa0b0;
+        }
+        .form-group input, .form-group select {
             width: 100%;
-            padding: 14px;
-            margin-bottom: 20px;
+            padding: 12px 14px;
             background: #1e1f24;
             border: none;
             border-radius: 28px;
@@ -73,9 +80,15 @@
             font-family: 'Rajdhani', sans-serif;
             border-bottom: 2px solid var(--tesla-blue);
             outline: none;
-            box-sizing: border-box;
         }
-        .form-card button {
+        .inline-group {
+            display: flex;
+            gap: 12px;
+        }
+        .inline-group .form-group {
+            flex: 1;
+        }
+        button {
             width: 100%;
             background: var(--tesla-blue);
             border: none;
@@ -85,10 +98,23 @@
             font-weight: bold;
             font-size: 1.2rem;
             color: black;
-            margin-top: 10px;
+            margin-top: 20px;
             cursor: pointer;
+            transition: 0.2s;
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        .error-msg {
+            color: var(--tesla-red);
+            font-size: 0.75rem;
+            margin-top: 5px;
+            display: none;
         }
         /* Interface principale */
+        #main-app {
+            display: none;
+        }
         header {
             padding: 20px;
             text-align: center;
@@ -136,9 +162,21 @@
             background: rgba(255,255,255,0.03);
             border-radius: 12px;
         }
-        .label { font-size: 0.8rem; color: #888; text-transform: uppercase; }
-        .value { font-size: 1.4rem; font-weight: 700; color: white; display: block; }
-        .unit { font-size: 0.7rem; color: var(--tesla-blue); }
+        .label {
+            font-size: 0.8rem;
+            color: #888;
+            text-transform: uppercase;
+        }
+        .value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: white;
+            display: block;
+        }
+        .unit {
+            font-size: 0.7rem;
+            color: var(--tesla-blue);
+        }
         .status-bar {
             display: flex;
             align-items: center;
@@ -170,52 +208,96 @@
 </head>
 <body>
 
-<!-- Formulaire initial -->
+<!-- Formulaire d'initialisation -->
 <div id="form-screen">
     <div class="form-card">
-        <h2>🔐 BASSMA SENTRY</h2>
-        <input type="text" id="driverId" placeholder="ID conducteur (ex: BASSMA01)" autocomplete="off">
-        <input type="text" id="matricule" placeholder="Matricule (ex: 46-أ-65528)" autocomplete="off">
-        <input type="text" id="destination" placeholder="Destination (ex: Hôpital Mohammed V)" autocomplete="off">
+        <h2>🔐 Driver Monitoring System </h2>
+        
+<div class="form-group">
+    <label>Nom</label>
+    <input type="text" id="lastname" placeholder="Ex: BENALI" autocomplete="off" oninput="this.value = this.value.replace(/[0-9]/g, '').toUpperCase()">
+    <div class="error-msg" id="error-lastname">Lettres et espaces uniquement</div>
+</div>
+
+<div class="form-group">
+    <label>Prénom</label>
+    <input type="text" id="firstname" placeholder="Ex: MOHAMED" autocomplete="off" oninput="this.value = this.value.replace(/[0-9]/g, '')">
+    <div class="error-msg" id="error-firstname">Lettres et espaces uniquement</div>
+</div>
+        
+        <!-- Matricule marocain : 3 champs -->
+        <div class="form-group">
+            <label>Matricule - Lettre arabe</label>
+            <select id="arabicLetter">
+                <option value="">-- Choisir --</option>
+                <option value="أ">أ</option><option value="ب">ب</option><option value="ت">ت</option>
+                <option value="ث">ث</option><option value="ج">ج</option><option value="ح">ح</option>
+                <option value="خ">خ</option><option value="د">د</option><option value="ذ">ذ</option>
+                <option value="ر">ر</option><option value="ز">ز</option><option value="س">س</option>
+                <option value="ش">ش</option><option value="ص">ص</option><option value="ض">ض</option>
+                <option value="ط">ط</option><option value="ظ">ظ</option><option value="ع">ع</option>
+                <option value="غ">غ</option><option value="ف">ف</option><option value="ق">ق</option>
+                <option value="ك">ك</option><option value="ل">ل</option><option value="م">م</option>
+                <option value="ن">ن</option><option value="ه">ه</option><option value="و">و</option>
+                <option value="ي">ي</option>
+            </select>
+            <div class="error-msg" id="error-letter">Sélectionnez une lettre</div>
+        </div>
+        <div class="inline-group">
+            <div class="form-group">
+                <label>Code préfecture (1-89)</label>
+                <input type="number" id="prefectureCode" min="1" max="89" placeholder="Ex: 46">
+                <div class="error-msg" id="error-prefecture">Doit être entre 1 et 89</div>
+            </div>
+            <div class="form-group">
+                <label>Numéro (5 chiffres)</label>
+                <input type="text" id="plateNumber" maxlength="5" placeholder="Ex: 65528">
+                <div class="error-msg" id="error-plateNumber">5 chiffres exactement</div>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>Destination (ville / village)</label>
+            <input type="text" id="destination" placeholder="Ex: Safi, Marrakech, Casablanca" autocomplete="off">
+            <div class="error-msg" id="error-destination">Ville ou village obligatoire</div>
+        </div>
+        
         <button id="startBtn">▶ DÉMARRER LA SURVEILLANCE</button>
     </div>
 </div>
 
-<!-- Interface principale (cachée au départ) -->
-<div id="main-app" style="display: none;">
-    <header><h1>BASSMA SENTRY - FLUX GPS</h1></header>
+<!-- Interface principale -->
+<div id="main-app">
+    <header><h1>Driver Monitoring System - TELEMETRY</h1></header>
     <div id="map"></div>
     <div class="dashboard-overlay">
         <div class="stats-grid">
             <div class="stat-box"><span class="label">Vitesse</span><span class="value" id="speed">0</span><span class="unit">KM/H</span></div>
-            <div class="stat-box"><span class="label">Précision</span><span class="value" id="accuracy">0</span><span class="unit">MÈTRES</span></div>
+            <div class="stat-box"><span class="label">Précision</span><span class="value" id="accuracy">0</span><span class="unit">M</span></div>
         </div>
-        <div class="status-bar" id="status-container">
-            <div class="pulse"></div>
-            <span id="status-text">GPS ACTIF</span>
-        </div>
+        <div class="status-bar"><div class="pulse"></div><span id="status-text">GPS ACTIF</span></div>
     </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
     // ================= CONFIGURATION =================
-    // REMPLACEZ PAR L'URL DE VOTRE WEBHOOK N8N (ngrok ou serveur)
-    const WEBHOOK_URL = "https://votre-ngrok.ngrok.io/webhook/bassma-alerts";
+    const WEBHOOK_URL = "https://skewed-buffoon-jovial.ngrok-free.dev/webhook/somnolence-alerte";
     
     let map, marker, circle;
     let lastSendTime = 0;
     let watchId = null;
-    let initSent = false;          // évite de renvoyer le payload INIT plusieurs fois
+    let initSent = false;
+    let intervalId = null;
     
-    // Infos conducteur (remplies par le formulaire)
+    // Infos conducteur
     let driver = {
-        id: "",
-        matricule: "",
+        nom: "",
+        prenom: "",
+        matricule: "", // sera construit
         destination: ""
     };
     
-    // Position courante
     let currentPos = {
         lat: 32.2927,
         lon: -9.2345,
@@ -223,59 +305,86 @@
         accuracy: 0
     };
     
-    // ================= FORMULAIRE =================
-    document.getElementById('startBtn').addEventListener('click', async () => {
-        const id = document.getElementById('driverId').value.trim();
-        const matricule = document.getElementById('matricule').value.trim();
+    // ================= VALIDATION FORMULAIRE =================
+    function validateName(value) {
+        return /^[A-Za-z\u00C0-\u00FF\s]+$/.test(value); // lettres, accents, espaces
+    }
+    
+    function validateForm() {
+        let isValid = true;
+        
+        const lastname = document.getElementById('lastname').value.trim();
+        const firstname = document.getElementById('firstname').value.trim();
+        const arabicLetter = document.getElementById('arabicLetter').value;
+        const prefectureCode = document.getElementById('prefectureCode').value;
+        const plateNumber = document.getElementById('plateNumber').value.trim();
         const destination = document.getElementById('destination').value.trim();
         
-        if (!id || !matricule || !destination) {
-            alert("Veuillez remplir tous les champs (ID, Matricule, Destination)");
-            return;
+        // Nom
+        if (!lastname || !validateName(lastname)) {
+            document.getElementById('error-lastname').style.display = 'block';
+            isValid = false;
+        } else {
+            document.getElementById('error-lastname').style.display = 'none';
+        }
+        // Prénom
+        if (!firstname || !validateName(firstname)) {
+            document.getElementById('error-firstname').style.display = 'block';
+            isValid = false;
+        } else {
+            document.getElementById('error-firstname').style.display = 'none';
+        }
+        // Lettre arabe
+        if (!arabicLetter) {
+            document.getElementById('error-letter').style.display = 'block';
+            isValid = false;
+        } else {
+            document.getElementById('error-letter').style.display = 'none';
+        }
+        // Code préfecture 1-89
+        const prefectureNum = parseInt(prefectureCode);
+        if (isNaN(prefectureNum) || prefectureNum < 1 || prefectureNum > 89) {
+            document.getElementById('error-prefecture').style.display = 'block';
+            isValid = false;
+        } else {
+            document.getElementById('error-prefecture').style.display = 'none';
+        }
+        // 5 chiffres
+        if (!/^\d{5}$/.test(plateNumber)) {
+            document.getElementById('error-plateNumber').style.display = 'block';
+            isValid = false;
+        } else {
+            document.getElementById('error-plateNumber').style.display = 'none';
+        }
+        // Destination
+        if (!destination) {
+            document.getElementById('error-destination').style.display = 'block';
+            isValid = false;
+        } else {
+            document.getElementById('error-destination').style.display = 'none';
         }
         
-        driver = { id, matricule, destination };
-        
-        // Démarrer la géolocalisation immédiatement (pour obtenir la position initiale)
-        if (!navigator.geolocation) {
-            alert("GPS non supporté sur ce navigateur");
-            return;
+        if (isValid) {
+            // Construire le matricule complet
+            const matriculeComplet = `${prefectureNum}-${arabicLetter}-${plateNumber}`;
+            driver = {
+                nom: lastname.toUpperCase(),
+                prenom: firstname.toUpperCase(),
+                matricule: matriculeComplet,
+                destination: destination
+            };
         }
-        
-        // On active l'interface
-        document.getElementById('form-screen').style.display = 'none';
-        document.getElementById('main-app').style.display = 'block';
-        
-        initMap();
-        
-        // Lancement du GPS (watchPosition)
-        startGPS();
-    });
-    
-    // ================= CARTE =================
-    function initMap() {
-        map = L.map('map', { zoomControl: false }).setView([currentPos.lat, currentPos.lon], 15);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-        
-        const teslaIcon = L.divIcon({
-            className: 'custom-div-icon',
-            html: "<div style='background-color:#3498db; width:15px; height:15px; border-radius:50%; border:3px solid white; box-shadow:0 0 15px #3498db;'></div>",
-            iconSize: [21,21],
-            iconAnchor: [10,10]
-        });
-        
-        marker = L.marker([currentPos.lat, currentPos.lon], { icon: teslaIcon }).addTo(map);
-        circle = L.circle([currentPos.lat, currentPos.lon], { radius: 20, color: '#3498db', fillOpacity: 0.1 }).addTo(map);
+        return isValid;
     }
     
     // ================= ENVOI VERS N8N =================
     async function sendToN8n(alertType, additionalData = {}) {
         let payload;
         if (alertType === "INIT") {
-            // Premier envoi : toutes les informations fixes + position
             payload = {
                 alert_type: "INIT",
-                driver_id: driver.id,
+                driver_nom: driver.nom,
+                driver_prenom: driver.prenom,
                 matricule: driver.matricule,
                 destination: driver.destination,
                 lat: currentPos.lat,
@@ -285,7 +394,6 @@
                 ...additionalData
             };
         } else if (alertType === "GPS_UPDATE") {
-            // Envoi périodique : seulement les données variables
             payload = {
                 alert_type: "GPS_UPDATE",
                 lat: currentPos.lat,
@@ -294,81 +402,93 @@
                 timestamp: new Date().toISOString()
             };
         } else {
-            // Autres (non utilisés ici mais gardé pour extensibilité)
             payload = { alert_type: alertType, ...additionalData };
         }
         
         try {
-            const response = await fetch(WEBHOOK_URL, {
+            await fetch(WEBHOOK_URL, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
             });
-            console.log(`✅ [${alertType}] envoyé`, payload);
-            // Mise à jour du statut visuel (optionnel)
+            console.log(`✅ [${alertType}] envoyé`);
             const statusSpan = document.getElementById('status-text');
             if (statusSpan && alertType === "GPS_UPDATE") {
-                statusSpan.innerText = "DONNÉES ENVOYÉES";
+                statusSpan.innerText = "TRANSMIS";
                 setTimeout(() => { if (statusSpan) statusSpan.innerText = "GPS ACTIF"; }, 2000);
             }
         } catch (error) {
-            console.error(`❌ Erreur envoi ${alertType}:`, error);
-            const statusSpan = document.getElementById('status-text');
-            if (statusSpan) statusSpan.innerText = "ERREUR ENVOI";
+            console.error(`❌ Erreur ${alertType}:`, error);
         }
+    }
+    
+    // ================= CARTE =================
+    function initMap() {
+        map = L.map('map', { zoomControl: false }).setView([currentPos.lat, currentPos.lon], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        
+        const icon = L.divIcon({
+            html: "<div style='background-color:#3498db; width:15px; height:15px; border-radius:50%; border:2px solid white; box-shadow:0 0 12px #3498db;'></div>",
+            iconSize: [15,15],
+            iconAnchor: [7,7]
+        });
+        marker = L.marker([currentPos.lat, currentPos.lon], { icon }).addTo(map);
+        circle = L.circle([currentPos.lat, currentPos.lon], { radius: 20, color: '#3498db', fillOpacity: 0.1 }).addTo(map);
     }
     
     // ================= GEOLOCALISATION =================
     function startGPS() {
+        if (!navigator.geolocation) {
+            document.getElementById('status-text').innerText = "GPS NON SUPPORTÉ";
+            return;
+        }
+        
         watchId = navigator.geolocation.watchPosition(
             (position) => {
                 const { latitude, longitude, speed, accuracy } = position.coords;
-                // Mise à jour des variables
                 currentPos.lat = latitude;
                 currentPos.lon = longitude;
                 currentPos.speed = speed ? (speed * 3.6).toFixed(0) : 0;
                 currentPos.accuracy = accuracy.toFixed(0);
                 
-                // Mise à jour de l'interface
                 document.getElementById('speed').innerText = currentPos.speed;
                 document.getElementById('accuracy').innerText = currentPos.accuracy;
                 
-                // Déplacement de la carte
-                const latlng = [latitude, longitude];
-                if (marker) marker.setLatLng(latlng);
-                if (circle) circle.setLatLng(latlng);
+                if (marker) marker.setLatLng([latitude, longitude]);
+                if (circle) circle.setLatLng([latitude, longitude]);
                 if (circle) circle.setRadius(accuracy);
-                if (map) map.panTo(latlng);
+                if (map) map.panTo([latitude, longitude]);
                 
-                // --- Gestion des envois ---
-                // 1) Envoi INIT une seule fois (dès qu'on a une position valide)
-                if (!initSent && currentPos.lat !== 32.2927) { // évite la position par défaut
+                // Envoi INIT une seule fois (dès première position correcte)
+                if (!initSent && latitude !== 32.2927 && longitude !== -9.2345) {
                     initSent = true;
                     sendToN8n("INIT");
-                }
-                
-                // 2) Envoi périodique toutes les 20 secondes (GPS_UPDATE)
-                const now = Date.now();
-                if (initSent && (now - lastSendTime) >= 20000) {
-                    lastSendTime = now;
-                    sendToN8n("GPS_UPDATE");
+                    // Démarrer l'envoi périodique toutes les 1 minute (60000 ms)
+                    if (intervalId) clearInterval(intervalId);
+                    intervalId = setInterval(() => {
+                        sendToN8n("GPS_UPDATE");
+                    }, 60000);
                 }
             },
             (error) => {
-                console.error("Erreur GPS:", error);
-                const statusSpan = document.getElementById('status-text');
-                if (statusSpan) {
-                    statusSpan.innerText = "GPS DÉCONNECTÉ";
-                    document.getElementById('status-container').style.color = "#e74c3c";
-                }
+                console.error("GPS error", error);
+                document.getElementById('status-text').innerText = "GPS DÉCONNECTÉ";
             },
-            {
-                enableHighAccuracy: true,
-                maximumAge: 0,
-                timeout: 5000
-            }
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
         );
     }
+    
+    // ================= DÉMARRAGE =================
+    document.getElementById('startBtn').addEventListener('click', () => {
+        if (validateForm()) {
+            document.getElementById('form-screen').style.display = 'none';
+            document.getElementById('main-app').style.display = 'block';
+            initMap();
+            startGPS();
+        } else {
+            alert("Veuillez corriger les erreurs dans le formulaire.");
+        }
+    });
 </script>
 </body>
 </html>
