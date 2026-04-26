@@ -3,383 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SENTRY DRIVE | Fleet Manager</title>
+    <title>SENTRY DRIVE | Fleet Monitor</title>
     <link rel="manifest" href="data:application/manifest+json,{
         \"name\":\"SENTRY DRIVE\",
         \"short_name\":\"SENTRY\",
         \"start_url\":\".\",
         \"display\":\"standalone\",
-        \"theme_color\":\"#1e2a36\",
-        \"background_color\":\"#0f1720\"
+        \"theme_color\":\"#0A0B0D\",
+        \"background_color\":\"#0A0B0D\"
     }">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
     <style>
-        /* ===== RESET & BASE ===== */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
-        body {
-            background: #0f1720;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            color: #e2e8f0;
-            overflow: hidden;
-            height: 100vh;
-        }
-        /* ===== FORM SCREEN ===== */
-        #form-screen {
-            position: fixed;
-            inset: 0;
-            z-index: 3000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #0f1720;
-            padding: 20px;
-            overflow-y: auto;
-        }
-        .form-card {
-            background: #1e2a36;
-            border-radius: 16px;
-            padding: 28px 24px;
-            width: 100%;
-            max-width: 440px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-            border: 1px solid #2d3e4e;
-        }
-        .logo {
-            text-align: center;
-            margin-bottom: 24px;
-        }
-        .logo-name {
-            font-size: 1.8rem;
-            font-weight: 700;
-            letter-spacing: 2px;
-            color: #38bdf8;
-        }
-        .logo-sub {
-            font-size: 0.7rem;
-            color: #94a3b8;
-            margin-top: 4px;
-        }
-        .sec-label {
-            font-size: 0.7rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            color: #94a3b8;
-            letter-spacing: 1px;
-            margin: 20px 0 12px 0;
-            border-left: 3px solid #38bdf8;
-            padding-left: 10px;
-        }
-        .fg {
-            margin-bottom: 16px;
-        }
-        .fg label {
-            display: block;
-            font-size: 0.75rem;
-            font-weight: 500;
-            color: #cbd5e1;
-            margin-bottom: 5px;
-        }
-        .fg input, .fg select {
-            width: 100%;
-            padding: 12px 14px;
-            background: #0f1720;
-            border: 1px solid #334155;
-            border-radius: 12px;
-            color: white;
-            font-size: 0.9rem;
-            font-family: inherit;
-            outline: none;
-            transition: 0.2s;
-        }
-        .fg input:focus, .fg select:focus {
-            border-color: #38bdf8;
-            box-shadow: 0 0 0 2px rgba(56,189,248,0.2);
-        }
-        .row {
-            display: flex;
-            gap: 12px;
-        }
-        .row .fg {
-            flex: 1;
-        }
-        #startBtn {
-            width: 100%;
-            background: #38bdf8;
-            border: none;
-            padding: 14px;
-            border-radius: 40px;
-            font-weight: 700;
-            font-size: 1rem;
-            color: #0f1720;
-            margin-top: 24px;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        #startBtn:active {
-            transform: scale(0.97);
-            background: #0ea5e9;
-        }
-        .err {
-            color: #f87171;
-            font-size: 0.75rem;
-            text-align: center;
-            margin-top: 12px;
-            display: none;
-        }
-        .toggle-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #0f1720;
-            padding: 8px 12px;
-            border-radius: 12px;
-            margin-bottom: 16px;
-        }
-        .toggle-label {
-            font-size: 0.75rem;
-            font-weight: 500;
-        }
-        .toggle-btn {
-            background: #1e2a36;
-            border: 1px solid #334155;
-            border-radius: 30px;
-            padding: 4px 12px;
-            font-size: 0.7rem;
-            font-weight: 600;
-            color: #94a3b8;
-            cursor: pointer;
-        }
-        .toggle-btn.active {
-            background: #38bdf8;
-            color: #0f1720;
-            border-color: #38bdf8;
-        }
-        /* ===== MAIN APP (COCKPIT SOBRE) ===== */
-        #main-app {
-            display: none;
-            height: 100vh;
-            width: 100vw;
-            position: relative;
-        }
-        #map {
-            position: absolute;
-            inset: 0;
-            z-index: 1;
-        }
-        .leaflet-tile-pane {
-            filter: brightness(0.8) contrast(0.9) saturate(0.8);
-        }
-        .leaflet-control-zoom, .leaflet-control-attribution {
-            display: none;
-        }
-        /* Header */
-        .app-header {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-            background: rgba(15,23,32,0.92);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid #2d3e4e;
-            padding: 12px 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        .driver-info {
-            font-size: 0.8rem;
-        }
-        .driver-name {
-            font-weight: 700;
-            color: #38bdf8;
-        }
-        .driver-mat {
-            font-family: monospace;
-            font-size: 0.7rem;
-            color: #94a3b8;
-        }
-        .dest-info {
-            text-align: right;
-        }
-        .dest-label {
-            font-size: 0.6rem;
-            color: #94a3b8;
-            text-transform: uppercase;
-        }
-        .dest-value {
-            font-weight: 700;
-            font-size: 0.8rem;
-        }
-        .time-info {
-            font-family: monospace;
-            font-size: 1.1rem;
-            font-weight: 500;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { background: #0b0f15; font-family: 'Inter', sans-serif; color: #e2e8f0; overflow: hidden; height: 100vh; }
+        /* Formulaire */
+        #form-screen { position: fixed; inset: 0; z-index: 3000; display: flex; align-items: center; justify-content: center; background: #0b0f15; padding: 20px; overflow-y: auto; }
+        .form-card { background: #1a202c; border-radius: 24px; padding: 28px 24px; width: 100%; max-width: 440px; border: 1px solid #2d3748; }
+        .logo { text-align: center; margin-bottom: 24px; }
+        .logo-name { font-size: 1.8rem; font-weight: 700; letter-spacing: 2px; color: #38bdf8; }
+        .logo-sub { font-size: 0.7rem; color: #94a3b8; margin-top: 4px; }
+        .sec-label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; color: #94a3b8; border-left: 3px solid #38bdf8; padding-left: 10px; margin: 20px 0 12px 0; }
+        .fg { margin-bottom: 16px; }
+        .fg label { display: block; font-size: 0.75rem; font-weight: 500; color: #cbd5e1; margin-bottom: 5px; }
+        .fg input, .fg select { width: 100%; padding: 12px 14px; background: #0f1720; border: 1px solid #334155; border-radius: 12px; color: white; font-size: 0.9rem; outline: none; }
+        .fg input:focus, .fg select:focus { border-color: #38bdf8; box-shadow: 0 0 0 2px rgba(56,189,248,0.2); }
+        .row { display: flex; gap: 12px; }
+        .row .fg { flex: 1; }
+        #startBtn { width: 100%; background: #38bdf8; border: none; padding: 14px; border-radius: 40px; font-weight: 700; font-size: 1rem; color: #0f1720; margin-top: 24px; cursor: pointer; }
+        #startBtn:active { transform: scale(0.97); background: #0ea5e9; }
+        .err { color: #f87171; font-size: 0.75rem; text-align: center; margin-top: 12px; display: none; }
+        .toggle-row { display: flex; justify-content: space-between; align-items: center; background: #0f1720; padding: 8px 12px; border-radius: 12px; margin-bottom: 16px; }
+        .toggle-label { font-size: 0.75rem; font-weight: 500; }
+        .toggle-btn { background: #1e293b; border: 1px solid #334155; border-radius: 30px; padding: 4px 12px; font-size: 0.7rem; font-weight: 600; color: #94a3b8; cursor: pointer; }
+        .toggle-btn.active { background: #38bdf8; color: #0f1720; border-color: #38bdf8; }
+        /* Interface principale */
+        #main-app { display: none; height: 100vh; width: 100vw; position: relative; }
+        #map { position: absolute; inset: 0; z-index: 1; }
+        .leaflet-control-zoom, .leaflet-control-attribution { display: none; }
+        /* Header avec bouton MENU */
+        .app-header { position: absolute; top: 0; left: 0; right: 0; z-index: 1000; background: rgba(15,23,32,0.92); backdrop-filter: blur(12px); border-bottom: 1px solid #2d3e4e; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+        .driver-info { font-size: 0.8rem; }
+        .driver-name { font-weight: 700; color: #38bdf8; }
+        .driver-mat { font-family: monospace; font-size: 0.7rem; color: #94a3b8; }
+        .time-info { font-family: monospace; font-size: 1.1rem; font-weight: 500; text-align: center; }
+        .menu-header-btn { background: #1e293b; border: 1px solid #334155; border-radius: 30px; padding: 4px 12px; font-size: 0.7rem; font-weight: 600; color: #94a3b8; cursor: pointer; }
+        .menu-header-btn:active { background: #38bdf8; color: #0f1720; }
         /* Badges */
-        .badge-bar {
-            position: absolute;
-            top: 70px;
-            left: 12px;
-            right: 12px;
-            z-index: 1000;
-            display: flex;
-            justify-content: space-between;
-            gap: 8px;
-        }
-        .badge {
-            background: rgba(15,23,32,0.9);
-            backdrop-filter: blur(8px);
-            border-radius: 40px;
-            padding: 6px 12px;
-            font-size: 0.7rem;
-            border: 1px solid #2d3e4e;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #64748b;
-        }
-        .status-dot.good { background: #22c55e; box-shadow: 0 0 4px #22c55e; }
-        .status-dot.medium { background: #eab308; }
-        .status-dot.poor { background: #ef4444; }
-        .sync-status .status-dot {
-            animation: blink 1s infinite;
-        }
-        @keyframes blink {
-            0%,100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
-        /* GPS wait overlay */
-        #gps-wait {
-            position: absolute;
-            inset: 0;
-            z-index: 500;
-            background: rgba(15,23,32,0.95);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 16px;
-        }
-        #gps-wait.gone { display: none; }
-        .spinner {
-            width: 48px;
-            height: 48px;
-            border: 3px solid #2d3e4e;
-            border-top-color: #38bdf8;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .wait-text {
-            font-size: 0.85rem;
-            color: #94a3b8;
-        }
-        /* Bottom dashboard */
-        .bottom-panel {
-            position: absolute;
-            bottom: 12px;
-            left: 12px;
-            right: 12px;
-            z-index: 1000;
-            background: rgba(15,23,32,0.92);
-            backdrop-filter: blur(12px);
-            border-radius: 20px;
-            border: 1px solid #2d3e4e;
-            padding: 12px;
-        }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-        .stat-card {
-            background: #0f1720;
-            border-radius: 16px;
-            padding: 8px;
-            text-align: center;
-        }
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            font-family: monospace;
-        }
-        .stat-unit {
-            font-size: 0.6rem;
-            color: #94a3b8;
-        }
-        .stat-label {
-            font-size: 0.6rem;
-            color: #94a3b8;
-            margin-top: 4px;
-        }
-        .route-cards {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-        .route-card {
-            flex: 1;
-            background: #0f1720;
-            border-radius: 16px;
-            padding: 8px 10px;
-        }
-        .route-title {
-            font-size: 0.6rem;
-            color: #94a3b8;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .route-value {
-            font-weight: 600;
-            font-size: 0.8rem;
-            margin-top: 2px;
-        }
-        .route-coords {
-            font-size: 0.6rem;
-            font-family: monospace;
-            color: #64748b;
-        }
-        /* toast */
-        #toast {
-            position: fixed;
-            bottom: 100px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #1e2a36;
-            border-radius: 40px;
-            padding: 8px 20px;
-            font-size: 0.75rem;
-            color: #38bdf8;
-            z-index: 6000;
-            display: none;
-            pointer-events: none;
-            white-space: nowrap;
-            border: 1px solid #2d3e4e;
-            backdrop-filter: blur(8px);
-        }
-        .live-dot {
-            width: 14px;
-            height: 14px;
-            background: #38bdf8;
-            border: 2px solid white;
-            border-radius: 50%;
-            box-shadow: 0 0 0 3px rgba(56,189,248,0.3);
-        }
+        .badge-bar { position: absolute; top: 70px; left: 12px; right: 12px; z-index: 1000; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
+        .badge { background: rgba(15,23,32,0.9); backdrop-filter: blur(8px); border-radius: 40px; padding: 4px 10px; font-size: 0.65rem; border: 1px solid #2d3e4e; display: inline-flex; align-items: center; gap: 5px; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #64748b; }
+        .good { background: #22c55e; box-shadow: 0 0 4px #22c55e; }
+        .medium { background: #eab308; }
+        .poor { background: #ef4444; }
+        /* Panneau principal */
+        .bottom-panel { position: absolute; bottom: 12px; left: 12px; right: 12px; z-index: 1000; background: rgba(15,23,32,0.92); backdrop-filter: blur(12px); border-radius: 24px; border: 1px solid #2d3e4e; padding: 16px; }
+        .speed-area { text-align: center; margin-bottom: 20px; }
+        .speed-value { font-size: 3rem; font-weight: 700; font-family: monospace; color: #38bdf8; line-height: 1; }
+        .speed-unit { font-size: 0.9rem; color: #94a3b8; }
+        .stats-row { display: flex; justify-content: space-between; gap: 12px; margin-top: 8px; }
+        .stat-card { flex: 1; background: #0f1720; border-radius: 16px; padding: 8px; text-align: center; }
+        .stat-value { font-size: 1.2rem; font-weight: 700; font-family: monospace; }
+        .stat-label { font-size: 0.6rem; color: #94a3b8; margin-top: 4px; text-transform: uppercase; }
+        .extra-info { display: flex; justify-content: space-between; margin-top: 12px; font-size: 0.7rem; color: #94a3b8; }
+        /* Menu déroulant */
+        .menu-panel { position: absolute; top: 60px; right: 12px; background: #1a202c; border-radius: 16px; padding: 10px; display: none; flex-direction: column; gap: 6px; z-index: 1100; border: 1px solid #2d3e4e; min-width: 160px; }
+        .menu-panel.show { display: flex; }
+        .menu-item { font-size: 0.7rem; padding: 4px 8px; color: #cbd5e1; white-space: nowrap; }
+        #toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #1e293b; border-radius: 40px; padding: 8px 20px; font-size: 0.75rem; color: #38bdf8; z-index: 6000; display: none; pointer-events: none; white-space: nowrap; }
+        .live-dot { width: 14px; height: 14px; background: #00a8ff; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 0 3px rgba(0,168,255,0.3); }
     </style>
 </head>
 <body>
@@ -387,121 +81,55 @@
 <!-- FORMULAIRE -->
 <div id="form-screen">
     <div class="form-card">
-        <div class="logo">
-            <div class="logo-name">SENTRY DRIVE</div>
-            <div class="logo-sub">Fleet Management System</div>
-        </div>
-        <div class="sec-label">▸ Conducteur</div>
-        <div class="fg">
-            <label>Nom & Prénom</label>
-            <input type="text" id="fullname" placeholder="AHMED BENALI" autocomplete="off" oninput="this.value=this.value.toUpperCase()">
-        </div>
-        <div class="sec-label">▸ Matricule (Maroc)</div>
+        <div class="logo"><div class="logo-name">SENTRY DRIVE</div><div class="logo-sub">Fleet Intelligence</div></div>
+        <div class="sec-label">▸ CONDUCTEUR</div>
+        <div class="fg"><label>Nom</label><input type="text" id="lastname" placeholder="BENALI" oninput="this.value=this.value.replace(/[0-9]/g, '').toUpperCase()"></div>
+        <div class="fg"><label>Prénom</label><input type="text" id="firstname" placeholder="MOHAMED" oninput="this.value=this.value.replace(/[0-9]/g, '').toUpperCase()"></div>
+        <div class="sec-label">▸ MATRICULE (Maroc)</div>
         <div class="row">
-            <div class="fg">
-                <label>5 chiffres</label>
-                <input type="text" id="mat_num" placeholder="65528" maxlength="5" inputmode="numeric">
-            </div>
-            <div class="fg">
-                <label>Lettre</label>
-                <select id="mat_lettre">
-                    <option value="">-</option>
-                    <option value="أ">أ</option><option value="ب">ب</option><option value="ت">ت</option><option value="ث">ث</option>
-                    <option value="ج">ج</option><option value="ح">ح</option><option value="خ">خ</option><option value="د">د</option>
-                    <option value="ذ">ذ</option><option value="ر">ر</option><option value="ز">ز</option><option value="س">س</option>
-                    <option value="ش">ش</option><option value="ص">ص</option><option value="ض">ض</option><option value="ط">ط</option>
-                    <option value="ظ">ظ</option><option value="ع">ع</option><option value="غ">غ</option><option value="ف">ف</option>
-                    <option value="ق">ق</option><option value="ك">ك</option><option value="ل">ل</option><option value="م">م</option>
-                    <option value="ن">ن</option><option value="ه">ه</option><option value="و">و</option><option value="ي">ي</option>
-                </select>
-            </div>
-            <div class="fg">
-                <label>Préfecture</label>
-                <input type="number" id="mat_pref" placeholder="46" min="1" max="89">
-            </div>
+            <div class="fg"><label>5 chiffres</label><input type="text" id="mat_num" placeholder="65528" maxlength="5" inputmode="numeric"></div>
+            <div class="fg"><label>Lettre</label><select id="mat_lettre"><option value="">-</option><option value="أ">أ</option><option value="ب">ب</option><option value="ت">ت</option><option value="ث">ث</option><option value="ج">ج</option><option value="ح">ح</option><option value="خ">خ</option><option value="د">د</option><option value="ذ">ذ</option><option value="ر">ر</option><option value="ز">ز</option><option value="س">س</option><option value="ش">ش</option><option value="ص">ص</option><option value="ض">ض</option><option value="ط">ط</option><option value="ظ">ظ</option><option value="ع">ع</option><option value="غ">غ</option><option value="ف">ف</option><option value="ق">ق</option><option value="ك">ك</option><option value="ل">ل</option><option value="م">م</option><option value="ن">ن</option><option value="ه">ه</option><option value="و">و</option><option value="ي">ي</option></select></div>
+            <div class="fg"><label>Préfecture</label><input type="number" id="mat_pref" placeholder="46" min="1" max="89"></div>
         </div>
-        <div class="sec-label">▸ Destination</div>
-        <div class="fg">
-            <label>Ville / Lieu</label>
-            <input type="text" id="destination" placeholder="CASABLANCA PORT" oninput="this.value=this.value.toUpperCase()">
-        </div>
-        <div class="toggle-row">
-            <span class="toggle-label">⚡ Mode économie d'énergie</span>
-            <button type="button" id="ecoModeToggle" class="toggle-btn">DÉSACTIVÉ</button>
-        </div>
+        <div class="toggle-row"><span class="toggle-label">⚡ Mode économie d'énergie</span><button type="button" id="ecoModeToggle" class="toggle-btn">DÉSACTIVÉ</button></div>
         <button id="startBtn">▶ DÉMARRER LA MISSION</button>
         <div class="err" id="errMsg">⚠ Tous les champs sont obligatoires</div>
     </div>
 </div>
 
-<!-- MAIN APP -->
+<!-- INTERFACE PRINCIPALE -->
 <div id="main-app">
     <div id="map"></div>
-    <div id="gps-wait">
-        <div class="spinner"></div>
-        <div class="wait-text">Acquisition GPS ...</div>
-        <div class="wait-text" id="wait-acc" style="font-size:0.7rem;">Précision: —</div>
-    </div>
-
     <div class="app-header">
-        <div class="driver-info">
-            <div class="driver-name" id="v_nom">—</div>
-            <div class="driver-mat" id="v_mat">—</div>
-        </div>
-        <div class="time-info">
-            <span id="clock">--:--:--</span>
-            <div style="font-size:0.6rem; color:#94a3b8" id="datex">—</div>
-        </div>
-        <div class="dest-info">
-            <div class="dest-label">Destination</div>
-            <div class="dest-value" id="v_dest">—</div>
-        </div>
+        <div class="driver-info"><div class="driver-name" id="v_nom">—</div><div class="driver-mat" id="v_mat">—</div></div>
+        <div class="time-info"><span id="clock">--:--:--</span><div style="font-size:0.6rem;" id="datex">—</div></div>
+        <button class="menu-header-btn" id="menuBtn">MENU</button>
     </div>
 
     <div class="badge-bar">
-        <div class="badge">
-            <span class="status-dot" id="gpsDot"></span>
-            <span id="gps-acc-txt">GPS: —</span>
-        </div>
-        <div class="badge sync-status" id="syncBadge">
-            <div style="display:flex; align-items:center; gap:5px">
-                <span class="status-dot" id="syncDot"></span>
-                <span id="sync-txt">EN ATTENTE</span>
-            </div>
-            <span id="cdown" style="font-size:0.6rem;">—</span>
-        </div>
+        <div class="badge"><span class="status-dot" id="gpsDot"></span><span id="gps-acc-txt">GPS</span></div>
+        <div class="badge"><span>🛰️</span><span id="satellites">—</span></div>
+        <div class="badge"><span>🔋</span><span id="batteryLevel">—%</span></div>
+        <div class="badge"><span>📶</span><span id="networkType">—</span></div>
+        <div class="badge sync-status" id="syncBadge"><span class="status-dot" id="syncDot"></span><span id="sync-txt">EN ATTENTE</span></div>
     </div>
 
     <div class="bottom-panel">
-        <div class="route-cards">
-            <div class="route-card">
-                <div class="route-title">DÉPART (fixe)</div>
-                <div class="route-value" id="v_dep_city">—</div>
-                <div class="route-coords" id="v_dep_coords">—</div>
-            </div>
-            <div class="route-card">
-                <div class="route-title">POSITION ACTUELLE</div>
-                <div class="route-value" id="v_cur_city">—</div>
-                <div class="route-coords" id="v_cur_coords">—</div>
-            </div>
+        <div class="speed-area"><div class="speed-value" id="v_speed">0</div><div class="speed-unit">km/h</div></div>
+        <div class="stats-row">
+            <div class="stat-card"><div class="stat-value" id="v_driveTime">00:00</div><div class="stat-label">Temps de conduite</div></div>
+            <div class="stat-card"><div class="stat-value" id="v_distance">0.0</div><div class="stat-label">km</div></div>
+            <div class="stat-card"><div class="stat-value" id="v_dir">N</div><div class="stat-label">Direction</div></div>
         </div>
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-value" id="v_speed">0</div>
-                <div class="stat-unit">km/h</div>
-                <div class="stat-label">VITESSE</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="v_acc">—</div>
-                <div class="stat-unit">m</div>
-                <div class="stat-label">PRÉCISION</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="v_timer">00:00</div>
-                <div class="stat-unit"></div>
-                <div class="stat-label">MISSION</div>
-            </div>
-        </div>
+        <div class="extra-info"><span>⏱️ Prochain envoi: <span id="cdown">—</span></span><span>🔁 Mode: <span id="ecoLabel">Normal</span></span></div>
+    </div>
+
+    <!-- Menu déroulant (détails) -->
+    <div class="menu-panel" id="menuPanel">
+        <div class="menu-item">📡 Précision: <span id="detail_acc">—</span> m</div>
+        <div class="menu-item">📈 Vitesse max: <span id="detail_maxSpeed">0</span> km/h</div>
+        <div class="menu-item">🧭 Cap: <span id="detail_heading">—</span>°</div>
+        <div class="menu-item">⬆️ Altitude: <span id="detail_alt">—</span> m</div>
     </div>
 </div>
 <div id="toast"></div>
@@ -509,7 +137,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 // ================= CONFIGURATION =================
-const WEBHOOK_GPS = "https://skewed-buffoon-jovial.ngrok-free.dev/webhook-test/somnolence-alerte";
+const WEBHOOK_URL = "https://skewed-buffoon-jovial.ngrok-free.dev/webhook-test/somnolence-alerte"; // À MODIFIER
 const SEND_INTERVAL = 60000;
 
 let ecoMode = false;
@@ -517,27 +145,28 @@ try { const saved = localStorage.getItem('sentry_ecoMode'); if(saved === 'true')
 const ecoBtn = document.getElementById('ecoModeToggle');
 ecoBtn.innerText = ecoMode ? 'ACTIVÉ' : 'DÉSACTIVÉ';
 ecoBtn.classList.toggle('active', ecoMode);
+document.getElementById('ecoLabel').innerText = ecoMode ? 'Éco' : 'Normal';
 
-let map, liveMarker, watchId, sendInterval, countdownInterval, timerInterval, clockInterval;
-let driver = { nom:"", matricule:"", destination:"" };
-let startPos = null;
-let curPos = { lat:null, lon:null, speed:0, acc:0, city:"" };
+let map, marker, circle, watchId, sendInterval, countdownInterval, timerInterval, clockInterval;
+let driver = { nom: "", prenom: "", matricule: "" };
+let curPos = { lat: null, lon: null, speed: 0, acc: 0, alt: null, heading: null, satellites: null };
 let missionStart = null;
 let offlineQueue = [];
-let gpsStarted = false;
+let gpsStarted = false, initSent = false;
+let maxSpeed = 0, totalDistance = 0, lastPos = null;
 let lastMapUpdate = 0;
-const geocodeCache = new Map();
 
+// Stockage
 function store(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); } catch(e){} }
 function recall(k){ try{ return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } }
 
 const savedForm = recall('sentry_form');
 if(savedForm){
-    document.getElementById('fullname').value = savedForm.nom || '';
+    document.getElementById('lastname').value = savedForm.nom || '';
+    document.getElementById('firstname').value = savedForm.prenom || '';
     document.getElementById('mat_num').value = savedForm.mat_num || '';
     document.getElementById('mat_lettre').value = savedForm.mat_lettre || '';
     document.getElementById('mat_pref').value = savedForm.mat_pref || '';
-    document.getElementById('destination').value = savedForm.destination || '';
 }
 
 function toast(msg, dur=2500){
@@ -547,55 +176,32 @@ function toast(msg, dur=2500){
 }
 
 function setSyncUI(state){
-    const el = document.getElementById('syncBadge');
     const tx = document.getElementById('sync-txt');
     const dot = document.getElementById('syncDot');
-    const states = { ok:'OK', sending:'ENVOI...', err:'ERREUR', queue:'FILE' };
-    if(state === 'ok'){
-        dot.style.background = '#22c55e';
-        tx.textContent = 'SYNCHRO OK';
-    } else if(state === 'sending'){
-        dot.style.background = '#eab308';
-        tx.textContent = 'ENVOI...';
-    } else if(state === 'err'){
-        dot.style.background = '#ef4444';
-        tx.textContent = 'ERREUR';
-    } else if(state === 'queue'){
-        dot.style.background = '#eab308';
-        tx.textContent = 'EN FILE';
-    } else {
-        dot.style.background = '#64748b';
-        tx.textContent = 'EN ATTENTE';
-    }
-}
-
-async function geocode(lat, lon){
-    if(ecoMode) return `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-    const key = `${Math.round(lat*100)/100},${Math.round(lon*100)/100}`;
-    if(geocodeCache.has(key)) return geocodeCache.get(key);
-    try{
-        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=fr`, {
-            headers: { 'User-Agent': 'SentryDrive/3.0 (fleet-manager; contact@example.com)' }
-        });
-        const data = await res.json();
-        const addr = data.address;
-        const city = addr.city || addr.town || addr.village || addr.county || addr.state || `${lat.toFixed(3)},${lon.toFixed(3)}`;
-        geocodeCache.set(key, city);
-        return city;
-    } catch(e){
-        return `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-    }
+    if(state === 'ok'){ dot.style.background = '#22c55e'; tx.textContent = 'SYNCHRO OK'; }
+    else if(state === 'sending'){ dot.style.background = '#eab308'; tx.textContent = 'ENVOI...'; }
+    else if(state === 'err'){ dot.style.background = '#ef4444'; tx.textContent = 'ERREUR'; }
+    else if(state === 'queue'){ dot.style.background = '#eab308'; tx.textContent = 'EN FILE'; }
+    else { dot.style.background = '#64748b'; tx.textContent = 'EN ATTENTE'; }
 }
 
 async function sendGPS(eventType, forceQueue=false){
-    if(!startPos || !curPos.lat) return;
+    if(!curPos.lat || !missionStart) return;
     const payload = {
         event: eventType,
         driver_name: driver.nom,
+        driver_prename: driver.prenom,
         vehicle_id: driver.matricule,
-        destination: driver.destination,
-        depart: { lat: startPos.lat, lon: startPos.lon, city: startPos.city || "" },
-        actuel: { lat: curPos.lat, lon: curPos.lon, city: curPos.city || "", speed_kmh: curPos.speed, gps_accuracy_m: curPos.acc },
+        current_lat: curPos.lat,
+        current_lon: curPos.lon,
+        current_speed_kmh: curPos.speed,
+        gps_accuracy_m: curPos.acc,
+        altitude_m: curPos.alt,
+        heading_deg: curPos.heading,
+        satellites: curPos.satellites,
+        max_speed_kmh: maxSpeed,
+        total_distance_km: totalDistance,
+        drive_time_sec: Math.floor((Date.now() - missionStart)/1000),
         timestamp: new Date().toISOString()
     };
     if(forceQueue || !navigator.onLine){
@@ -605,13 +211,11 @@ async function sendGPS(eventType, forceQueue=false){
     }
     setSyncUI('sending');
     try{
-        const r = await fetch(WEBHOOK_GPS, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+        const r = await fetch(WEBHOOK_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
         if(r.ok) setSyncUI('ok');
         else throw new Error();
         if(offlineQueue.length){
-            for(let q of offlineQueue){
-                await fetch(WEBHOOK_GPS, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(q) });
-            }
+            for(let q of offlineQueue) await fetch(WEBHOOK_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(q) });
             offlineQueue = [];
             setSyncUI('ok');
         }
@@ -621,6 +225,7 @@ async function sendGPS(eventType, forceQueue=false){
     }
 }
 
+// Horloge
 function startClock(){
     function tick(){
         const n = new Date();
@@ -634,10 +239,11 @@ function startTimer(){
     if(timerInterval) clearInterval(timerInterval);
     missionStart = Date.now();
     timerInterval = setInterval(()=>{
-        const s = Math.floor((Date.now()-missionStart)/1000);
-        const m = Math.floor(s/60);
-        const ss = s%60;
-        document.getElementById('v_timer').innerText = `${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+        if(!missionStart) return;
+        const sec = Math.floor((Date.now() - missionStart)/1000);
+        const h = Math.floor(sec/3600);
+        const m = Math.floor((sec%3600)/60);
+        document.getElementById('v_driveTime').innerText = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
     },1000);
 }
 
@@ -646,30 +252,89 @@ function startCountdown(){
     if(countdownInterval) clearInterval(countdownInterval);
     countdownInterval = setInterval(()=>{
         next = Math.max(0, next-1);
-        document.getElementById('cdown').innerText = `prochain: ${String(next).padStart(2,'0')}s`;
+        document.getElementById('cdown').innerText = `${String(next).padStart(2,'0')}s`;
         if(next===0) next = SEND_INTERVAL/1000;
     },1000);
 }
 
-function updateMapPosition(lat, lon){
-    if(!map || !liveMarker) return;
-    const now = Date.now();
-    if(now - lastMapUpdate > (ecoMode ? 3000 : 1500)){
-        lastMapUpdate = now;
-        liveMarker.setLatLng([lat, lon]);
-        if(!ecoMode) map.panTo([lat, lon], {animate:true, duration:0.3});
-        else map.setView([lat, lon], map.getZoom(), {animate:false});
-    }
+// Distance Haversine
+function haversine(lat1, lon1, lat2, lon2){
+    const R = 6371;
+    const dLat = (lat2-lat1)*Math.PI/180;
+    const dLon = (lon2-lon1)*Math.PI/180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+    const c = 2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R*c;
+}
+
+// Direction cardinale
+function getCardinal(deg){
+    if(deg===null) return '?';
+    const d = deg % 360;
+    if(d<22.5) return 'N';
+    if(d<67.5) return 'NE';
+    if(d<112.5) return 'E';
+    if(d<157.5) return 'SE';
+    if(d<202.5) return 'S';
+    if(d<247.5) return 'SW';
+    if(d<292.5) return 'W';
+    if(d<337.5) return 'NW';
+    return 'N';
+}
+
+// Réseau / batterie
+function updateNetworkAndBattery(){
+    if(navigator.connection){
+        const type = navigator.connection.effectiveType || 'unknown';
+        document.getElementById('networkType').innerText = type.toUpperCase();
+        navigator.connection.addEventListener('change', ()=>document.getElementById('networkType').innerText = (navigator.connection.effectiveType||'unknown').toUpperCase());
+    } else document.getElementById('networkType').innerText = 'N/D';
+    if('getBattery' in navigator){
+        navigator.getBattery().then(batt=>{
+            const update=()=>{
+                const lvl = Math.round(batt.level*100);
+                document.getElementById('batteryLevel').innerText = `${lvl}%`;
+                if(lvl < 20 && !ecoMode) toast("🔋 Batterie faible – branchez le chargeur", 4000);
+                if(lvl < 10) toast("⚠️ Batterie critique – branchez immédiatement", 5000);
+            };
+            update();
+            batt.addEventListener('levelchange', update);
+        });
+    } else document.getElementById('batteryLevel').innerText = 'N/D';
 }
 
 function initMap(lat, lon){
     if(map) map.remove();
-    map = L.map('map', {zoomControl:false, attributionControl:false}).setView([lat,lon],15);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
-    const icon = L.divIcon({className:'',iconAnchor:[7,7],html:'<div class="live-dot"></div>'});
-    liveMarker = L.marker([lat,lon],{icon}).addTo(map);
+    map = L.map('map', { zoomControl: false }).setView([lat, lon], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap France | &copy; OSM contributors',
+        maxZoom: 19
+    }).addTo(map);
+    const icon = L.divIcon({
+        html: "<div style='background:#00a8ff; width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 0 12px #00a8ff;'></div>",
+        iconSize: [14,14],
+        iconAnchor: [7,7]
+    });
+    marker = L.marker([lat, lon], { icon }).addTo(map);
+    circle = L.circle([lat, lon], { radius: 20, color: '#00a8ff', fillOpacity: 0.1 }).addTo(map);
 }
 
+
+function updateMapPosition(lat, lon, acc){
+    if(!map || !marker || !circle) return;
+    const now = Date.now();
+    // Limite le rafraîchissement pour économiser la batterie
+    if(now - lastMapUpdate > (ecoMode ? 3000 : 1000)){
+        lastMapUpdate = now;
+        marker.setLatLng([lat, lon]);
+        circle.setLatLng([lat, lon]);
+        if(acc) circle.setRadius(acc);
+        // Centre la carte en douceur
+        map.panTo([lat, lon], { animate: true, duration: 0.5 });
+    }
+}
+
+// ================= GPS =================
 function startGPS(){
     if(!navigator.geolocation){ alert("GPS non supporté"); return; }
     if(watchId) navigator.geolocation.clearWatch(watchId);
@@ -678,108 +343,123 @@ function startGPS(){
         timeout: ecoMode ? 20000 : 10000,
         maximumAge: ecoMode ? 15000 : 0
     };
-    watchId = navigator.geolocation.watchPosition(async pos => {
-        const {latitude:lat, longitude:lon, speed, accuracy:acc} = pos.coords;
-        const kmh = speed ? Math.round(speed*3.6) : 0;
-        curPos = { lat, lon, speed:kmh, acc:Math.round(acc), city:curPos.city };
-        document.getElementById('v_speed').innerText = kmh;
-        document.getElementById('v_acc').innerText = curPos.acc;
-        document.getElementById('gps-acc-txt').innerHTML = `GPS: ±${curPos.acc}m`;
-        document.getElementById('wait-acc').innerHTML = `Précision: ±${curPos.acc}m`;
-        const dot = document.getElementById('gpsDot');
-        if(curPos.acc < 15) dot.className = 'status-dot good';
-        else if(curPos.acc < 40) dot.className = 'status-dot medium';
-        else dot.className = 'status-dot poor';
-
-        if(!startPos && curPos.acc < (ecoMode ? 80 : 50)){
-            startPos = { lat, lon, city:"" };
-            startPos.city = await geocode(lat, lon);
-            curPos.city = startPos.city;
-            document.getElementById('v_dep_city').innerText = startPos.city;
-            document.getElementById('v_dep_coords').innerText = `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
-            document.getElementById('v_cur_city').innerText = curPos.city;
-            document.getElementById('v_cur_coords').innerText = `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
-            document.getElementById('gps-wait').classList.add('gone');
-            initMap(lat, lon);
-            startTimer();
-            await sendGPS("MISSION_START");
-            toast("Mission démarrée – synchronisation active");
-            startCountdown();
-            sendInterval = setInterval(async () => {
-                if(startPos){
-                    if(!ecoMode) curPos.city = await geocode(curPos.lat, curPos.lon);
-                    else curPos.city = `${curPos.lat.toFixed(3)},${curPos.lon.toFixed(3)}`;
-                    document.getElementById('v_cur_city').innerText = curPos.city;
-                    document.getElementById('v_cur_coords').innerText = `${curPos.lat.toFixed(5)}, ${curPos.lon.toFixed(5)}`;
-                    await sendGPS("GPS_UPDATE");
-                }
-            }, SEND_INTERVAL);
-        }
-        if(startPos){
-            updateMapPosition(lat, lon);
-            document.getElementById('v_cur_coords').innerText = `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
-            if(!ecoMode) document.getElementById('v_cur_city').innerText = curPos.city;
-            else document.getElementById('v_cur_city').innerText = `${lat.toFixed(3)},${lon.toFixed(3)}`;
-        }
-    }, err => {
-        console.error(err);
-        setSyncUI('err');
-        toast("GPS indisponible – vérifiez les autorisations", 3000);
-    }, options);
+    watchId = navigator.geolocation.watchPosition(
+        async pos => {
+            const { latitude:lat, longitude:lon, speed, accuracy:acc, altitude:alt, heading } = pos.coords;
+            let kmh = speed ? Math.round(speed * 3.6) : 0;
+            // Filtre : en dessous de 14 km/h ou si la précision est médiocre, on affiche 0
+            if (kmh < 14 || acc > 30) kmh = 0;
+            const sats = pos.coords.satellites ? pos.coords.satellites : null;
+            curPos = { lat, lon, speed: kmh, acc: Math.round(acc), alt: alt ? Math.round(alt) : null, heading: heading ? Math.round(heading) : null, satellites: sats };
+            if(kmh > maxSpeed) { maxSpeed = kmh; document.getElementById('detail_maxSpeed').innerText = maxSpeed; }
+            // Distance
+            if(lastPos && (kmh > 0.5)){
+                totalDistance += haversine(lastPos.lat, lastPos.lon, lat, lon);
+                document.getElementById('v_distance').innerText = totalDistance.toFixed(1);
+            }
+            lastPos = { lat, lon };
+            // UI
+            document.getElementById('v_speed').innerText = kmh;
+            document.getElementById('v_dir').innerText = getCardinal(heading);
+            document.getElementById('gps-acc-txt').innerHTML = `GPS ${curPos.acc<15?'🟢':curPos.acc<40?'🟡':'🔴'}`;
+            document.getElementById('detail_acc').innerText = curPos.acc;
+            document.getElementById('detail_heading').innerText = heading !== null ? heading : '—';
+            document.getElementById('detail_alt').innerText = curPos.alt !== null ? curPos.alt : '—';
+            document.getElementById('satellites').innerText = sats !== null ? sats : '—';
+            const dot = document.getElementById('gpsDot');
+            if(curPos.acc < 15) dot.className = 'status-dot good';
+            else if(curPos.acc < 40) dot.className = 'status-dot medium';
+            else dot.className = 'status-dot poor';
+            // Carte
+            if(map && marker) updateMapPosition(lat, lon, curPos.acc);
+            else initMap(lat, lon);
+            // Démarrage mission (première position)
+            if(!missionStart){
+                startTimer();
+                startCountdown();
+                sendGPS("MISSION_START");
+                toast("Mission démarrée – synchronisation active");
+                sendInterval = setInterval(async () => {
+                    if(curPos.lat) await sendGPS("GPS_UPDATE");
+                }, SEND_INTERVAL);
+            }
+        },
+        err => { console.warn(err); setSyncUI('err'); toast("GPS indisponible", 3000); },
+        options
+    );
     gpsStarted = true;
 }
 
-// EVENTS
+// Évènements
 ecoBtn.addEventListener('click', ()=>{
     ecoMode = !ecoMode;
     localStorage.setItem('sentry_ecoMode', ecoMode);
     ecoBtn.innerText = ecoMode ? 'ACTIVÉ' : 'DÉSACTIVÉ';
     ecoBtn.classList.toggle('active', ecoMode);
-    toast(ecoMode ? "Mode économie activé (géocodage désactivé, GPS moins précis)" : "Mode normal (géocodage actif)");
-    if(gpsStarted){
-        if(watchId) navigator.geolocation.clearWatch(watchId);
-        startGPS();
-    }
+    document.getElementById('ecoLabel').innerText = ecoMode ? 'Éco' : 'Normal';
+    toast(ecoMode ? "Mode économie activé (GPS moins précis)" : "Mode normal (précision maximale)");
+    if(gpsStarted){ if(watchId) navigator.geolocation.clearWatch(watchId); startGPS(); }
 });
 
 document.getElementById('startBtn').addEventListener('click', ()=>{
-    const nom = document.getElementById('fullname').value.trim();
+    const nom = document.getElementById('lastname').value.trim();
+    const prenom = document.getElementById('firstname').value.trim();
     const num = document.getElementById('mat_num').value.trim();
     const lettre = document.getElementById('mat_lettre').value;
     const pref = document.getElementById('mat_pref').value.trim();
-    const dest = document.getElementById('destination').value.trim();
-    if(!nom || !num || !lettre || !pref || !dest){
-        const e = document.getElementById('errMsg');
-        e.style.display = 'block';
-        setTimeout(()=>{ e.style.display='none'; },3000);
+    if(!nom || !prenom || !num || !lettre || !pref){
+        document.getElementById('errMsg').style.display='block';
+        setTimeout(()=>{ document.getElementById('errMsg').style.display='none'; },3000);
         return;
     }
-    driver = { nom, matricule: `${num}-${lettre}-${pref}`, destination: dest };
-    store('sentry_form', { nom, mat_num:num, mat_lettre:lettre, mat_pref:pref, destination:dest });
-    document.getElementById('v_nom').innerText = driver.nom;
+    driver = { nom, prenom, matricule: `${num}-${lettre}-${pref}` };
+    store('sentry_form', { nom, prenom, mat_num:num, mat_lettre:lettre, mat_pref:pref });
+    document.getElementById('v_nom').innerText = `${driver.nom} ${driver.prenom}`;
     document.getElementById('v_mat').innerText = driver.matricule;
-    document.getElementById('v_dest').innerText = driver.destination;
+    // Wake Lock : empêche l'écran de s'éteindre
+let wakeLock = null;
+async function requestWakeLock() {
+    if ('wakeLock' in navigator) {
+        try {
+            wakeLock = await navigator.wakeLock.request('screen');
+            console.log('🔒 Wake Lock activé – écran restera allumé');
+            // Libération automatique si l'onglet est caché (optionnel)
+            document.addEventListener('visibilitychange', async () => {
+                if (document.visibilityState === 'visible' && wakeLock === null) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                }
+            });
+        } catch (err) {
+            console.warn('⚠️ Wake Lock non disponible :', err);
+        }
+    } else {
+        console.warn('⚠️ Wake Lock non supporté par ce navigateur');
+    }
+}
+// Appeler cette fonction au démarrage de la mission
+    requestWakeLock();
     document.getElementById('form-screen').style.display = 'none';
     document.getElementById('main-app').style.display = 'block';
     startClock();
     startGPS();
-    // Battery monitor simple
-    if('getBattery' in navigator){
-        navigator.getBattery().then(batt=>{
-            const update=()=>{
-                const lvl = Math.round(batt.level*100);
-                if(lvl < 20 && !ecoMode) toast("🔋 Batterie faible – branchez le chargeur", 4000);
-                if(lvl < 10) toast("Batterie critique – branchez immédiatement", 5000);
-            };
-            update();
-            batt.addEventListener('levelchange', update);
-        });
-    }
+    updateNetworkAndBattery();
     window.addEventListener('online', ()=>{ if(offlineQueue.length) sendGPS("RECOVERY"); toast("Connexion rétablie"); });
     window.addEventListener('offline', ()=> toast("Connexion perdue – données mises en file", 3000));
 });
 
-// Service worker minimal
+// Menu déroulant
+const menuBtn = document.getElementById('menuBtn');
+const menuPanel = document.getElementById('menuPanel');
+menuBtn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    menuPanel.classList.toggle('show');
+});
+document.addEventListener('click', ()=>{
+    menuPanel.classList.remove('show');
+});
+menuPanel.addEventListener('click', (e)=> e.stopPropagation());
+
+// Service Worker PWA
 if('serviceWorker' in navigator){
     const swCode = `self.addEventListener('fetch', e=>e.respondWith(fetch(e.request)));`;
     const blob = new Blob([swCode], {type:'application/javascript'});
